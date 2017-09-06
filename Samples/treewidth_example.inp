@@ -1,0 +1,7 @@
+# quickbb/treewidth example - check output/qbb-stats.out for results
+>int threads 8
+>string qasm Samples/test_JW.qasm
+>string measurement Samples/measureSampleOne.txt
+>string contractmethod linegraph-qbb
+>int quickbbseconds 20
+>bool qbbonly true

@@ -1,0 +1,7 @@
+# Line graph decomposition method for contraction
+>int threads 8
+>string qasm Samples/test_JW.qasm
+>string measurement Samples/measureSampleOne.txt
+>string contractmethod linegraph-qbb
+>int quickbbseconds 20
+>string outputpath lg-example.out

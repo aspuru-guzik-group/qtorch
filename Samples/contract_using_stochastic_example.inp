@@ -1,0 +1,4 @@
+>string qasm Samples/test_JW.qasm
+>string measurement Samples/measureSampleOne.txt
+>string contractmethod simple-stoch
+>string outputpath outputTestStochastic.out

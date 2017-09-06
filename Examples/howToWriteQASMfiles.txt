@@ -1,0 +1,27 @@
+How to write qasm and measurement files (examples are provided as well):
+
+1. Each qasm file's first line must be the number of qubits in the circuit
+
+2. Each successive line can be chosen from the following
+	- Act on a qubit with an operator
+		-The following operators are already supported by the library:
+		CNOT, SWAP, Hadamard, Rx(theta), Ry(theta), Rz(theta), X, Y, Z, Depolarizing Noise Channel, CRk
+		-A two qubit operation looks like the following line: "CNOT 0 1" where 0 is the index of the control qubit
+		-A one qubit operation looks like: "H 0" or "Rz 3.14159 0"
+	- Define a new 1 or 2 qubit operator
+		-The following line defines a one qubit operator: "def1 Q q.gate"
+			-The numbers (imaginary are not supported) in the matrix "Q" must be found in the file: "q.gate"
+			-After this definition, Q can be called just like any other one qubit gate: "Q 0"
+		-The following line defines a two qubit operator: "def2 Cz cz.gate"
+			-The numbers (imaginary are not supported) in the matrix "Cz" must be found in the file: "cz.gate"
+			-After this definition, Q can be called just like any other two qubit gate: "Cz 0 1"
+		-Note that definition of an arbitrary operator does not support extra arguments as in Rz, Ry, and Rx
+			
+3. Measurement files must also be provided
+	-A measurement file consists of X,Y,Z,0,1, or T measurements separated by spaces
+	-If 5 measurements are included and an 8 qubit circuit is simulated, the rest of the qubits will be automatically traced out
+
+4. Things to Note:
+	-The qubits will always start in the all-zero pure state
+	-If your qasm files are incorrect, the tensor library will not simulate them and may crash
+	
