@@ -48,14 +48,14 @@ test:
 	@printf "\n"
 	@printf "\n"
 	@printf "\n"
-	@mkdir -p tests/input tests/output
+	@mkdir -p tests/input tests/output && chmod +x tests/tester
 	@./tests/tester > tests/output/tester.stdout
 
 testdry:
 	@mkdir -p tests
 	@printf "\n\n Compiling Test Executable ....."
 	@g++ -g $(LFLAGS) $(SOURCE)tests.cpp -o tests/tester $(INCLUDE)
-	@mkdir -p tests/input tests/output
+	@mkdir -p tests/input tests/output && chmod +x tests/tester
 	@printf "\n"
 
 cut:
