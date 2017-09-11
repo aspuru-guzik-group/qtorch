@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 
 
 
-==================The Tensor Library================
+==================The qTorch Library================
 
 There are three options to install the library for use: global 
 installation, local installation, and docker. Here, we provide
