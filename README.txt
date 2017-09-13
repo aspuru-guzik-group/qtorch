@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 
 ==================The qTorch Library================
 
-There are three options to install the library for use: global 
+There are three options to install the library: global 
 installation, local installation, and docker. Here, we provide
 a tutorial for each. gcc/g++ is the compiler used to compile and run the
 library. The version of gcc/g++ must be recent enough support the C++14 
