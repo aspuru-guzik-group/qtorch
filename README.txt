@@ -221,6 +221,7 @@ The output should ask for an input script file.
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
-The library is then ready for use! See software guide for more details
+The library is then ready for use! See software guide in Appendix C of the qTorch 
+paper for more details
 
 ====================================================
