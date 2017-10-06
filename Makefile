@@ -81,6 +81,7 @@ install:
 	@-apt-get update  # To get the latest package lists
 	@-apt-get install gcc -y
 	@-apt-get install libtool
+	@-apt-get install libtool-bin
 	@-brew install gcc
 	@-brew upgrade gcc
 	@-brew install libtool
@@ -95,7 +96,7 @@ install:
 	@cp $(BIN)quickbb_64 /usr/local/bin
 	@cp $(BIN)quickbb_32 /usr/local/bin
 	@printf "TO INSTALL THE NLOPT 2.4.2 PACKAGE\n"
-	@cd nlopt-2.4.2/ && make distclean
+	@-cd nlopt-2.4.2/ && make distclean
 	@cd nlopt-2.4.2 && ./configure
 	@cd nlopt-2.4.2/ && make && sudo make install #installs the nlopt-2.4.2 package (root privileges necessary)
 	@mkdir -p /usr/local/include/qtorch
@@ -144,6 +145,7 @@ installlocal:
 	@-apt-get update  # To get the latest package lists
 	@-apt-get install gcc -y
 	@-apt-get install libtool
+	@-apt-get install libtool-bin
 	@-brew install gcc
 	@-brew upgrade gcc
 	@-brew install libtool
