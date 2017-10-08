@@ -123,7 +123,7 @@ namespace qtorch {
 
         void ParseNetwork(const std::string &inputFile);
 
-        void ParseNode(std::string &inputLine);
+        void ParseNode(std::string &inputLine, std::vector<bool>& isEntangled);
 
         void CreateInitialStates();
 
@@ -270,12 +270,23 @@ namespace qtorch {
 
 
         std::cout << "Parsing nodes from file...." << std::endl;
+        std::vector<bool> isEntangled (mNumberOfQubits,false);
         //Parse Gates from file
         while (!input.eof()) {
             std::getline(input, temp);
-            ParseNode(temp);
+            ParseNode(temp,isEntangled);
         }
         input.close();
+        if(mNumberOfQubits>1){
+        	for(const auto& tempBool: isEntangled)
+        	{
+        		std::cout<<tempBool<<std::endl;
+        		if(!tempBool)
+        		{
+        		throw InvalidTensorNetwork();
+        		}
+       		}
+        }
 
 
         //Add measurements
@@ -325,7 +336,7 @@ namespace qtorch {
 
 
 //this function takes in a line from the qasm file and parses it, creating the appropriate node or arbitrary gate definition
-    void Network::ParseNode(std::string &inputLine) {
+    void Network::ParseNode(std::string &inputLine, std::vector<bool>& isEntangled) {
         // std::cout<<"Attempting To Parse A Node"<<std::endl;
         std::vector<std::string> parsedLine;
         //parse the line into tokens (with a space as the delimiter
@@ -496,6 +507,8 @@ namespace qtorch {
             newNode = std::make_shared<CNOTNode>();
             int tempQubitValOne{std::stoi(parsedLine[1])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[2])};
+            isEntangled[tempQubitValOne]=true;
+            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -521,6 +534,8 @@ namespace qtorch {
             newNode = std::make_shared<SwapNode>();
             int tempQubitValOne{std::stoi(parsedLine[1])};
             int tempQubitValTwo{std::stoi(parsedLine[2])};
+            isEntangled[tempQubitValOne]=true;
+            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -545,6 +560,8 @@ namespace qtorch {
             //std::cout<<"Created CRk Node..."<<std::endl;
             int tempQubitValOne{std::stoi(parsedLine[1])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[2])};
+            isEntangled[tempQubitValOne]=true;
+            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -570,6 +587,8 @@ namespace qtorch {
             //std::cout<<"Created CZ Node..."<<std::endl;
             int tempQubitValOne{std::stoi(parsedLine[1])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[2])};
+            isEntangled[tempQubitValOne]=true;
+            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -596,6 +615,8 @@ namespace qtorch {
             double tempPhaseVal{std::stod(parsedLine[1])};
             int tempQubitValOne{std::stoi(parsedLine[2])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[3])};
+            isEntangled[tempQubitValOne]=true;
+            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -651,6 +672,8 @@ namespace qtorch {
             newNode = std::make_shared<ArbitraryTwoQubitNode>(mArbitraryTwoQubitGates[parsedLine[0]], parsedLine[0]);
             int tempQubitValOne{std::stoi(parsedLine[1])};
             int tempQubitValTwo{std::stoi(parsedLine[2])};
+            isEntangled[tempQubitValOne]=true;
+            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();

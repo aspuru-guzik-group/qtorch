@@ -28,6 +28,10 @@ namespace qtorch {
     class InvalidFileFormat : public std::exception {
         const char *what() const noexcept override { return "Invalid File Format."; }
     };
+    
+    class InvalidTensorNetwork : public std::exception {
+        const char *what() const noexcept override { return "QASM File Does Not Entangle All Qubits - Please Add 2 qubit gates or check the specified number of qubits"; }
+    };
 
     class ContractionFailure : public std::exception {
         const char *what() const noexcept override { return "Contraction Failed."; }
