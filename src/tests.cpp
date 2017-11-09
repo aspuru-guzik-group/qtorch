@@ -1921,6 +1921,76 @@ bool randomCircuitsTest(std::ofstream& out)
 }
 
 
+bool unconnectedCircuitsTest(std::ofstream& out)
+{
+	
+	std::ofstream generateMeasurement("Samples/measureTest.txt");
+    generateMeasurement << "T T T T T T";
+    generateMeasurement.close();
+    std::ofstream generateCircuit("Samples/unconnected.qasm");
+    generateCircuit<<"3"<<std::endl<<"H 0"<<std::endl;
+    generateCircuit.close();
+    ContractionTools c("Samples/unconnected.qasm", "Samples/measureTest.txt");
+    try{
+    	c.Contract(Stochastic);
+    }
+    catch(InvalidTensorNetwork & error){
+    	out<<"Passed Incorrect Number of Qubits Test"<<std::endl;
+    
+    }
+    catch(std::exception & e)
+    {
+    	removeFile("Samples/measureTest.txt");
+        removeFile("Samples/unconnected.qasm");
+        out<<"Failed Test with exception: "<<e.what()<<std::endl;
+        return false;
+    }
+    generateCircuit.open("Samples/unconnected.qasm");
+    generateCircuit<<"3"<<std::endl<<"H 2"<<std::endl<<"H 1"<<std::endl<<"H 0"<<std::endl;
+    generateCircuit.close();
+    c.Reset();
+     try{
+    	c.Contract(Stochastic);
+    }
+    catch(InvalidTensorNetwork& error){
+    	out<<"Passed Incorrect Entanglement Test 1: Three Hadamards does not a circuit make."<<std::endl;
+    
+    }
+    catch(std::exception & e)
+    {
+    	removeFile("Samples/measureTest.txt");
+        removeFile("Samples/unconnected.qasm");
+        out<<"Failed Test with exception: "<<e.what()<<std::endl;
+        return false;
+    }
+    
+    generateCircuit.open("Samples/unconnected.qasm");
+    generateCircuit<<"3"<<std::endl<<"H 2"<<std::endl<<"H 1"<<std::endl<<"H 0"<<std::endl<<"CNOT 0 1"<<std::endl;
+    generateCircuit.close();
+    c.Reset();
+     try{
+    	c.Contract(Stochastic);
+    }
+    catch(InvalidTensorNetwork& error){
+    	out<<"Passed Incorrect Entanglement Test 2: Three Hadamards and 1 CNOT does not a circuit make."<<std::endl;
+    
+    }
+    catch(std::exception & e)
+    {
+    	removeFile("Samples/measureTest.txt");
+        removeFile("Samples/unconnected.qasm");
+        out<<"Failed Test with exception: "<<e.what()<<std::endl;
+        return false;
+    }
+    
+    
+    removeFile("Samples/measureTest.txt");
+    removeFile("Samples/unconnected.qasm");
+    
+    return true;
+    
+    
+}
 
 //this function runs all selected tests
 //to modify which tests are run, simply change the flag from true to false in the testsToRun map.
@@ -1940,7 +2010,8 @@ void runTests(const std::string& fileToOutputTo)
                               {teleporationTest,true},
                               {testUserDefinedSequence,true},
                               {largeCircuitTest, true},
-                              {randomCircuitsTest,true}
+                              {randomCircuitsTest,true},
+                              {unconnectedCircuitsTest,true}
                       });
 
 

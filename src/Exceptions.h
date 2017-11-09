@@ -57,4 +57,5 @@ namespace qtorch {
         const char *
         what() const noexcept override { return "Quick BB Failure.\n Details:\n quickbb_64 Executable: ELF 64-bit LSB executable,\n x86-64, version 1 (GNU/Linux), statically linked,\n for GNU/Linux 2.6.24, not stripped.\n Please check that your system is Linux and meets the requirements to run this binary.\n Otherwise, use the simple stochastic contraction method."; }
     };
+    
 }

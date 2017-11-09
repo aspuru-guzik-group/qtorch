@@ -32,7 +32,7 @@ See the License for the specific language governing permissions and
  * The data contained in the network class is also explained below. Please use the parallelizer wrapper class
  */
 
-#include <algorithm>  //npds
+#include <algorithm>  
 #include "Node.h"
 #include "Timer.h"
 #include <regex>
@@ -347,7 +347,7 @@ namespace qtorch {
         }
         std::shared_ptr<Node> newNode;
 
-        if (parsedLine[0] == "Rx") //if the line is an Rx gate
+        if (parsedLine[0] == "Rx" || parsedLine[0] == "RX") //if the line is an Rx gate
         {
             //Rx 3.1415 0 = Rx(pi) on qubit 0
 
@@ -389,7 +389,7 @@ namespace qtorch {
 
             //add the node to mNodes by wire
             mNodesByWire[tempQubitValOne].push_back(newNode);
-        } else if (parsedLine[0] == "Ry") //if the line is an Ry gate
+        } else if (parsedLine[0] == "Ry" || parsedLine[0] == "RY") //if the line is an Ry gate
         {
 
             //see Rx gate
@@ -409,7 +409,7 @@ namespace qtorch {
             newNode->AddWireNumber(tempQubitValOne);
             newNode->mIndexOfPreviousNode = mNodesByWire[tempQubitValOne].size() - 1;
             mNodesByWire[tempQubitValOne].push_back(newNode);
-        } else if (parsedLine[0] == "Rz") //if the line is an Rz gate
+        } else if (parsedLine[0] == "Rz" || parsedLine[0] == "RZ") //if the line is an Rz gate
         {
             //see Rx gate
             float tempPhaseVal{std::stof(parsedLine[1])};
@@ -428,7 +428,28 @@ namespace qtorch {
             newNode->AddWireNumber(tempQubitValOne);
             newNode->mIndexOfPreviousNode = mNodesByWire[tempQubitValOne].size() - 1;
             mNodesByWire[tempQubitValOne].push_back(newNode);
-        } else if (parsedLine[0] == "H") //if the line is an H gate
+        } 
+        else if (parsedLine[0] == "PHASE") //if the line is a PHASE gate
+        {
+            //see Rx gate
+            float tempPhaseVal{std::stof(parsedLine[1])};
+            //std::cout<<"Created Phase Node..."<<std::endl;
+            newNode = std::make_shared<PhaseNode>(tempPhaseVal);
+            int tempQubitValOne{std::stoi(parsedLine[2])};
+            if (tempQubitValOne > mNumberOfQubits - 1) {
+                throw InvalidFileFormat();
+            }
+            newNode->GetWires().push_back(mNetworkParsingWires[tempQubitValOne]);
+            mNetworkParsingWires[tempQubitValOne]->SetNodeB(newNode);
+            std::shared_ptr<Wire> newWire = std::make_shared<Wire>(newNode, nullptr, tempQubitValOne);
+            mNetworkParsingWires[tempQubitValOne] = newWire;
+            newNode->GetWires().push_back(newWire);
+
+            newNode->AddWireNumber(tempQubitValOne);
+            newNode->mIndexOfPreviousNode = mNodesByWire[tempQubitValOne].size() - 1;
+            mNodesByWire[tempQubitValOne].push_back(newNode);
+        }
+        else if (parsedLine[0] == "H") //if the line is an H gate
         {
             //see Rx gate
             //std::cout<<"Created H Node..."<<std::endl;

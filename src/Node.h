@@ -92,6 +92,7 @@ namespace qtorch {
         X,
         Y,
         Z,
+        PHASE,
         DEPOLARIZER,
         CRK,
         CZ,
@@ -276,6 +277,19 @@ namespace qtorch {
             Index({3, 3}) = 1.0;
             mType = GateType::RZ;
             mStringType = ("Rz");
+        };
+    };
+    
+    
+    class PhaseNode : public Node {
+    public:
+        PhaseNode(const double tempPhaseVal) : Node(2) {
+            Index({0, 0}) = 1.0;
+            Index({1, 1}) = std::complex<double>(cos(tempPhaseVal), -1.0 * sin(tempPhaseVal));
+            Index({2, 2}) = std::complex<double>(cos(tempPhaseVal), sin(tempPhaseVal));
+            Index({3, 3}) = 1.0;
+            mType = GateType::PHASE;
+            mStringType = ("Phase");
         };
     };
 
