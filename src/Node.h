@@ -332,10 +332,10 @@ namespace qtorch {
     class YNode : public Node {
     public:
         YNode() : Node(2) {
-            Index({0, 3}) = -1;
-            Index({1, 2}) = 1;
-            Index({2, 1}) = 1;
-            Index({3, 0}) = -1;
+            Index({0, 3}) = 1;
+            Index({1, 2}) = -1;
+            Index({2, 1}) = -1;
+            Index({3, 0}) = 1;
             mType = GateType::Y;
             mStringType = ("Y");
         };
