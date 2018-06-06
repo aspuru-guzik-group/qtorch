@@ -76,8 +76,6 @@ namespace qtorch {
 
         void ReduceCircuit();
 
-        void LocalizeInteractions(const std::string &logFile);
-
         void OutputCircuitToVisualGraph(const std::string &toOutputTo) const;
 
         void OutputCircuitToTreewidthGraph(const std::string &toOutputTo) const;
@@ -96,7 +94,7 @@ namespace qtorch {
         std::vector<std::shared_ptr<Wire>> mNetworkParsingWires; //keeps track of the furthest wire on each line in the circuit when building (**** becomes useless after building ****)
         std::string mInputFile; //the path to the input qasm file
         std::string mMeasureFile; //the path to the input measure file
-        std::complex<double> mFinalVal; //the final expectation value of the network
+        std::complex<double> mFinalVal{std::complex<double>(0.0)}; //the final expectation value of the network
         std::mutex mLocker; //mutex to avoid errors when parallelizing calls to contract nodes
         int mNumberOfQubits; //the number of qubits in the network
         int mDepth; //the depth of the circuit - only used when the localize interactions function is called
@@ -123,7 +121,7 @@ namespace qtorch {
 
         void ParseNetwork(const std::string &inputFile);
 
-        void ParseNode(std::string &inputLine, std::vector<bool>& isEntangled);
+        void ParseNode(std::string &inputLine);
 
         void CreateInitialStates();
 
@@ -270,23 +268,12 @@ namespace qtorch {
 
 
         std::cout << "Parsing nodes from file...." << std::endl;
-        std::vector<bool> isEntangled (mNumberOfQubits,false);
         //Parse Gates from file
         while (!input.eof()) {
             std::getline(input, temp);
-            ParseNode(temp,isEntangled);
+            ParseNode(temp);
         }
         input.close();
-        if(mNumberOfQubits>1){
-        	for(const auto& tempBool: isEntangled)
-        	{
-        		std::cout<<tempBool<<std::endl;
-        		if(!tempBool)
-        		{
-        		throw InvalidTensorNetwork();
-        		}
-       		}
-        }
 
 
         //Add measurements
@@ -336,7 +323,7 @@ namespace qtorch {
 
 
 //this function takes in a line from the qasm file and parses it, creating the appropriate node or arbitrary gate definition
-    void Network::ParseNode(std::string &inputLine, std::vector<bool>& isEntangled) {
+    void Network::ParseNode(std::string &inputLine) {
         // std::cout<<"Attempting To Parse A Node"<<std::endl;
         std::vector<std::string> parsedLine;
         //parse the line into tokens (with a space as the delimiter
@@ -528,8 +515,6 @@ namespace qtorch {
             newNode = std::make_shared<CNOTNode>();
             int tempQubitValOne{std::stoi(parsedLine[1])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[2])};
-            isEntangled[tempQubitValOne]=true;
-            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -555,8 +540,6 @@ namespace qtorch {
             newNode = std::make_shared<SwapNode>();
             int tempQubitValOne{std::stoi(parsedLine[1])};
             int tempQubitValTwo{std::stoi(parsedLine[2])};
-            isEntangled[tempQubitValOne]=true;
-            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -581,8 +564,6 @@ namespace qtorch {
             //std::cout<<"Created CRk Node..."<<std::endl;
             int tempQubitValOne{std::stoi(parsedLine[1])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[2])};
-            isEntangled[tempQubitValOne]=true;
-            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -608,8 +589,6 @@ namespace qtorch {
             //std::cout<<"Created CZ Node..."<<std::endl;
             int tempQubitValOne{std::stoi(parsedLine[1])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[2])};
-            isEntangled[tempQubitValOne]=true;
-            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -636,8 +615,6 @@ namespace qtorch {
             double tempPhaseVal{std::stod(parsedLine[1])};
             int tempQubitValOne{std::stoi(parsedLine[2])}; //qubit val one is control, and qubit val 2 is target
             int tempQubitValTwo{std::stoi(parsedLine[3])};
-            isEntangled[tempQubitValOne]=true;
-            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -693,8 +670,6 @@ namespace qtorch {
             newNode = std::make_shared<ArbitraryTwoQubitNode>(mArbitraryTwoQubitGates[parsedLine[0]], parsedLine[0]);
             int tempQubitValOne{std::stoi(parsedLine[1])};
             int tempQubitValTwo{std::stoi(parsedLine[2])};
-            isEntangled[tempQubitValOne]=true;
-            isEntangled[tempQubitValTwo]=true;
             if (tempQubitValOne > mNumberOfQubits - 1 || tempQubitValTwo > mNumberOfQubits - 1 ||
                 tempQubitValOne == tempQubitValTwo) {
                 throw InvalidFileFormat();
@@ -794,7 +769,7 @@ namespace qtorch {
         }
 
         //if there are no connected wires or if the rank of resulting node > max(rankA, rankB) + threshold, return nullptr
-        if (indicesA.size() == 0 || remainingWires.size() > std::max(nodeA->mRank, nodeB->mRank) + threshold ||
+        if ((indicesA.size() == 0 && indicesC.size() > 0) || remainingWires.size() > std::max(nodeA->mRank, nodeB->mRank) + threshold ||
             nodeA->mContracted || nodeB->mContracted) {
             //if no nodes are shared
             mLocker.unlock();
@@ -803,16 +778,16 @@ namespace qtorch {
 
 
         //uncomment to debug
-/*
-    std::cout<<"FOR DEBUGGING PURPOSES: "<<std::endl;
-    std::cout<<"Indices in Node A that matched:"<<std::endl;
-    for(auto& t: indicesA)
-        std::cout<<t<<", ";
-    std::cout<<std::endl<<"Indices in Node B that matched:"<<std::endl;
-    for(auto& t: indicesB)
-        std::cout<<t<<", ";
-    std::cout<<std::endl;
-*/
+
+        // std::cout<<"FOR DEBUGGING PURPOSES: "<<std::endl;
+        // std::cout<<"Indices in Node A that matched:"<<std::endl;
+        // for(auto& t: indicesA)
+        //     std::cout<<t<<", ";
+        // std::cout<<std::endl<<"Indices in Node B that matched:"<<std::endl;
+        // for(auto& t: indicesB)
+        //     std::cout<<t<<", ";
+        // std::cout<<std::endl;
+
 
         //create a vector that corresponds to the pairs of connected indices
         std::vector<std::pair<int, int>> indexPairs(indicesA.size());
@@ -824,13 +799,12 @@ namespace qtorch {
             return temp;
         });
 
-        //update the wires to point to nodeC instead of A and B
         //Uncomment to debug
-        //std::cout<<"rank of A: "<<nodeA->mRank<<std::endl;
-        //std::cout<<"rank of B: "<<nodeB->mRank<<std::endl;
-        //std::cout<<"New rank of C: "<<remainingWires.size()<<std::endl;
+        // std::cout<<"rank of A: "<<nodeA->mRank<<std::endl;
+        // std::cout<<"rank of B: "<<nodeB->mRank<<std::endl;
+        // std::cout<<"New rank of C: "<<remainingWires.size()<<std::endl;
 
-        //create node C, and update the remaining wires to point to nodeC instead of A and B
+        //create node C, and update the remaining wires to point to node C instead of A and B
 
         std::shared_ptr<Node> nodeC = std::make_shared<Node>(indicesC.size());
         std::for_each(remainingWires.begin(), remainingWires.end(),
@@ -843,20 +817,17 @@ namespace qtorch {
                           }
                       });
 
-        //create vectors to hold the current index in nodes A, B, and C
+        //create vectors to hold the current index in nodes A and B
         std::vector<int> aIndexHolder(nodeA->mRank);
         std::vector<int> bIndexHolder(nodeB->mRank);
-        // std::vector<int> cIndexHolder(nodeC->mRank);
-
-        //create a complex to hold the value for each summation
-        //  std::complex<double> startingSum(0.0);
 
         //warn the user if contracting a large tensor
         if (nodeC->mRank >= THRESH_RANK_THREAD) {
             std::cout << "Contracting Nodes of Rank " << nodeA->mRank << " and " << nodeB->mRank
                       << " to get a Node of Rank: " << nodeC->mRank << " Hold On....." << std::endl;
         }
-        //
+        
+
         nodeB->mContracted = true;
         nodeA->mContracted = true;
         for (int i = 0; i < connectedWires.size(); i++) {
@@ -865,10 +836,7 @@ namespace qtorch {
         mLocker.unlock();
         ContractIndices(indicesC, indexPairs, aIndexHolder, bIndexHolder, nodeA, nodeB, nodeC);
 
-        // Label the wires as having been contracted
 
-
-        // std::cout<<nodeA->mRank<<", "<<nodeB->mRank<<", "<<nodeC->mRank<<", "<<t1.getElapsed()<<std::endl;
         //set the ID, created from, and remove the node from uncontracted nodes
         if (mDone) {
             std::shared_ptr<Node> t = std::make_shared<Node>(0);
@@ -966,7 +934,7 @@ namespace qtorch {
             }
         };
 
-//actually do the threading: using the lambda above
+        //actually do the threading: using the lambda above
         if (nodeA->GetTensorVals().size() == 0 || nodeB->GetTensorVals().size() == 0) {
             throw InvalidFunctionInput();
         }
@@ -992,8 +960,12 @@ namespace qtorch {
         }
         if (toNotSumOn.size() == 0) {
             //if you're contracting two nodes to get a rank 0 tensor
-            mDone = true;
-            mFinalVal = nodeC->Access({0});
+            if (std::abs(mFinalVal.real()) <= 1.0e-30 && std::abs(mFinalVal.imag()) <= 1.0e-30 || (nodeA->mRank == 0 && nodeB->mRank == 0)){
+                mFinalVal = nodeC->Access({0});
+            }
+            if (mUncontractedNodes.size() == 2){
+                mDone = true;
+            }
         }
 
     }
@@ -1143,194 +1115,6 @@ namespace qtorch {
         //reassign
         mNodesByWire = std::move(temporaryNodesByWire);
 
-    }
-
-
-/*This function is mainly unused, but it localizes the interactions between all qubits in the circuit using swap gates
- * It updates the depth of the circuit
- */
-    void Network::LocalizeInteractions(const std::string &logFile) {
-        std::vector<std::shared_ptr<Node>> temporaryListOfNodes;
-        temporaryListOfNodes.reserve(mAllNodes.size() * mNumberOfQubits);
-        std::vector<std::vector<std::shared_ptr<Node>>> tempNodesByWire(mNumberOfQubits);
-        std::vector<std::vector<std::shared_ptr<Wire>>> tempWiresListing(mNumberOfQubits);
-        std::vector<std::tuple<int, int, int, int>> twoQubGatesInSequence; //first int is the first wire number, 2nd is the 2nd wire #, last two are the two indices of the nodes on the first wire
-        std::vector<int> gatesInSeqCount(mNumberOfQubits);
-        std::fill(gatesInSeqCount.begin(), gatesInSeqCount.end(), 0);
-        tempNodesByWire.resize(mNumberOfQubits);
-        tempWiresListing.resize(mNumberOfQubits);
-        std::for_each(tempNodesByWire.begin(), tempNodesByWire.end(), [](std::vector<std::shared_ptr<Node>> t) {
-            t.reserve(500);
-        });
-        int i = 0;
-        for (auto &node: mUncontractedNodes) {
-            node->GetWires().clear();
-            if (node->mRank == 4) {
-                //HERE is where the magic happens
-                int t = node->GetWireNumber()[0];
-                while (abs(node->GetWireNumber()[1] - t) != 1) {
-                    int u;
-                    bool flag{false};
-                    if (t > node->GetWireNumber()[1]) {
-                        u = t - 1;
-                    } else {
-                        flag = true;
-                        u = t + 1;
-                    }
-                    std::shared_ptr<Node> swapGate = std::make_shared<SwapNode>();
-                    swapGate->AddWireNumber(t);
-                    swapGate->AddWireNumber(u);
-                    //add appropriate wire connections here..... otherwise, swapgate will be unconnected
-                    //note that no new wires need to be created->only reassigned
-                    std::shared_ptr<Wire> newWireOne = std::make_shared<Wire>(swapGate, nullptr, t);
-                    std::shared_ptr<Wire> newWireTwo = std::make_shared<Wire>(swapGate, nullptr, u);
-                    swapGate->GetWires().push_back(tempWiresListing[t].back());
-                    swapGate->GetWires().push_back(tempWiresListing[u].back());
-                    swapGate->GetWires().push_back(newWireOne);
-                    swapGate->GetWires().push_back(newWireTwo);
-
-
-
-
-                    //check to see if there is a previous swap gate before
-                    if (!tempNodesByWire[t].empty() &&
-                        !tempNodesByWire[u].empty()) //checks to see if the two gates act in sequence
-                    {
-                        if (tempNodesByWire[t].back() == tempNodesByWire[u].back() &&
-                            tempNodesByWire[t].back()->GetTypeOfNode() == GateType::SWAP) {
-                            tempNodesByWire[t].pop_back();
-                            tempNodesByWire[u].pop_back();
-                            tempWiresListing[t].pop_back();
-                            tempWiresListing[u].pop_back();
-
-                        } else if (tempNodesByWire[t].back() == tempNodesByWire[u].back()) {
-                            twoQubGatesInSequence.push_back(
-                                    std::make_tuple(t, u, tempNodesByWire[t].size() - 1, tempNodesByWire[t].size()));
-                            gatesInSeqCount[u]++;
-                            gatesInSeqCount[t]++;
-                            tempWiresListing[u].back()->SetNodeB(swapGate);
-                            tempWiresListing[t].back()->SetNodeB(swapGate);
-                            tempWiresListing[u].push_back(newWireOne);
-                            tempWiresListing[t].push_back(newWireTwo);
-                            tempNodesByWire[t].push_back(swapGate);
-                            tempNodesByWire[u].push_back(swapGate);
-                        } else {
-                            tempWiresListing[u].back()->SetNodeB(swapGate);
-                            tempWiresListing[t].back()->SetNodeB(swapGate);
-                            tempWiresListing[u].push_back(newWireOne);
-                            tempWiresListing[t].push_back(newWireTwo);
-                            tempNodesByWire[t].push_back(swapGate);
-                            tempNodesByWire[u].push_back(swapGate);
-                        }
-
-                    }
-                    temporaryListOfNodes.push_back(swapGate);
-                    flag ? t++ : t--;
-                }
-
-
-                //add the node
-                if (tempNodesByWire[node->GetWireNumber()[1]].back() == tempNodesByWire[t].back()) {
-                    gatesInSeqCount[t]++;
-                    gatesInSeqCount[node->GetWireNumber()[1]]++;
-                    twoQubGatesInSequence.push_back(
-                            std::make_tuple(t, node->GetWireNumber()[1], tempNodesByWire[t].size() - 1,
-                                            tempNodesByWire.size()));
-                }
-                node->GetWires().clear();
-                int newGateNum(t);
-                std::shared_ptr<Wire> newWireOne = std::make_shared<Wire>(node, nullptr, node->GetWireNumber()[1]);
-                std::shared_ptr<Wire> newWireTwo = std::make_shared<Wire>(node, nullptr, t);
-                tempWiresListing[node->GetWireNumber()[1]].back()->SetNodeB(node);
-                tempWiresListing[t].back()->SetNodeB(node);
-                node->GetWires().push_back(tempWiresListing[t].back());
-                node->GetWires().push_back(tempWiresListing[node->GetWireNumber()[1]].back());
-                node->GetWires().push_back(newWireTwo);
-                node->GetWires().push_back(newWireOne);
-                tempWiresListing[t].push_back(newWireTwo);
-                tempWiresListing[node->GetWireNumber()[1]].push_back(newWireOne);
-                tempNodesByWire[t].push_back(node);
-                tempNodesByWire[node->GetWireNumber()[1]].push_back(node);
-                temporaryListOfNodes.push_back(node);
-                //swap back
-
-                while (t != node->GetWireNumber()[0]) {
-
-                    int u;
-                    bool flag{false};
-                    if (t > node->GetWireNumber()[0]) {
-                        u = t - 1;
-                    } else {
-                        flag = true;
-                        u = t + 1;
-                    }
-                    std::shared_ptr<Node> swapGate = std::make_shared<SwapNode>();
-                    swapGate->AddWireNumber(t);
-                    swapGate->AddWireNumber(u);
-                    //add appropriate wire connections here..... otherwise, swapgate will be unconnected
-                    //note that no new wires need to be created->only reassigned
-                    std::shared_ptr<Wire> newWireOne = std::make_shared<Wire>(swapGate, nullptr, t);
-                    std::shared_ptr<Wire> newWireTwo = std::make_shared<Wire>(swapGate, nullptr, u);
-                    tempWiresListing[u].back()->SetNodeB(swapGate);
-                    tempWiresListing[t].back()->SetNodeB(swapGate);
-                    swapGate->GetWires().push_back(tempWiresListing[t].back());
-                    swapGate->GetWires().push_back(tempWiresListing[u].back());
-                    swapGate->GetWires().push_back(newWireOne);
-                    swapGate->GetWires().push_back(newWireTwo);
-
-
-
-
-                    //check to see if there is a previous swap gate before
-                    if (tempNodesByWire[t].back() == tempNodesByWire[u].back()) {
-                        twoQubGatesInSequence.push_back(
-                                std::make_tuple(t, u, tempNodesByWire[t].size() - 1, tempNodesByWire[t].size()));
-                        gatesInSeqCount[u]++;
-                        gatesInSeqCount[t]++;
-                    }
-                    tempWiresListing[u].push_back(newWireOne);
-                    tempWiresListing[t].push_back(newWireTwo);
-                    tempNodesByWire[t].push_back(swapGate);
-                    tempNodesByWire[u].push_back(swapGate);
-                    temporaryListOfNodes.push_back(swapGate);
-                    flag ? t++ : t--;
-                }
-                node->SetWireNumber(0, newGateNum);
-
-            } else {
-                node->GetWires().clear();
-                if (node->GetTypeOfNode() == GateType::INITSTATE) {
-                    std::shared_ptr<Wire> newWire = std::make_shared<Wire>(node, nullptr, node->GetWireNumber()[0]);
-                    tempWiresListing[node->GetWireNumber()[0]].push_back(newWire);
-                    node->GetWires().push_back(newWire);
-
-                } else if (node->GetTypeOfNode() == GateType::MEASURETRACE) {
-                    node->GetWires().push_back(tempWiresListing[node->GetWireNumber()[0]].back());
-                    tempWiresListing[node->GetWireNumber()[0]].back()->SetNodeB(node);
-                }
-                tempNodesByWire[node->GetWireNumber()[0]].push_back(node);
-                temporaryListOfNodes.push_back(node);
-            }
-        }
-
-
-        //subtract the number of nodes that were repeated from
-        int maxD = 0;
-        int k = 0;
-        for (auto &temp: tempNodesByWire) {
-            if (temp.size() - gatesInSeqCount[k] - 2 > maxD) {
-                maxD = temp.size() - gatesInSeqCount[k] - 2;
-            }
-            k++;
-        }
-
-        mDepth = maxD;
-        mUncontractedNodes = std::move(temporaryListOfNodes);
-        mNodesByWire = std::move(tempNodesByWire);
-
-
-        //for debugging
-        OutputCircuit(mUncontractedNodes, logFile);
     }
 
 //This outputs a vector of Nodes to a file, along with the depth of the circuit

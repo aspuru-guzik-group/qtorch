@@ -1923,6 +1923,7 @@ bool randomCircuitsTest(std::ofstream& out)
 
 bool unconnectedCircuitsTest(std::ofstream& out)
 {
+    out<<"Running Unconnected Circuits Test"<<std::endl<<std::endl;
 	
 	std::ofstream generateMeasurement("Samples/measureTest.txt");
     generateMeasurement << "T T T T T T";
@@ -1936,7 +1937,6 @@ bool unconnectedCircuitsTest(std::ofstream& out)
     }
     catch(InvalidTensorNetwork & error){
     	out<<"Passed Incorrect Number of Qubits Test"<<std::endl;
-    
     }
     catch(std::exception & e)
     {
@@ -1945,6 +1945,7 @@ bool unconnectedCircuitsTest(std::ofstream& out)
         out<<"Failed Test with exception: "<<e.what()<<std::endl;
         return false;
     }
+
     generateCircuit.open("Samples/unconnected.qasm");
     generateCircuit<<"3"<<std::endl<<"H 2"<<std::endl<<"H 1"<<std::endl<<"H 0"<<std::endl;
     generateCircuit.close();
@@ -1952,10 +1953,6 @@ bool unconnectedCircuitsTest(std::ofstream& out)
      try{
     	c.Contract(Stochastic);
     }
-    catch(InvalidTensorNetwork& error){
-    	out<<"Passed Incorrect Entanglement Test 1: Three Hadamards does not a circuit make."<<std::endl;
-    
-    }
     catch(std::exception & e)
     {
     	removeFile("Samples/measureTest.txt");
@@ -1963,18 +1960,24 @@ bool unconnectedCircuitsTest(std::ofstream& out)
         out<<"Failed Test with exception: "<<e.what()<<std::endl;
         return false;
     }
-    
+    if (std::abs((c.GetFinalVal() - std::complex<double>(1, 0)).real()) > 0.00000001) {
+            removeFile("Samples/measureTest.txt");
+            removeFile("Samples/unconnected.qasm");
+            out<<"Failed Unconnected Test 1"<<std::endl;
+            return false;
+    }
+    out<<"Passed Unentangled Test 1"<<std::endl;
+
+    generateMeasurement.open("Samples/measureTest.txt");
+    generateMeasurement << "1 1 0 T T T";
+    generateMeasurement.close();
     generateCircuit.open("Samples/unconnected.qasm");
-    generateCircuit<<"3"<<std::endl<<"H 2"<<std::endl<<"H 1"<<std::endl<<"H 0"<<std::endl<<"CNOT 0 1"<<std::endl;
+    generateCircuit<<"3"<<std::endl<<"H 2"<<std::endl<<"H 0"<<std::endl<<"CNOT 0 1"<<std::endl;
     generateCircuit.close();
     c.Reset();
      try{
     	c.Contract(Stochastic);
     }
-    catch(InvalidTensorNetwork& error){
-    	out<<"Passed Incorrect Entanglement Test 2: Three Hadamards and 1 CNOT does not a circuit make."<<std::endl;
-    
-    }
     catch(std::exception & e)
     {
     	removeFile("Samples/measureTest.txt");
@@ -1982,6 +1985,14 @@ bool unconnectedCircuitsTest(std::ofstream& out)
         out<<"Failed Test with exception: "<<e.what()<<std::endl;
         return false;
     }
+    if (std::abs((c.GetFinalVal() - std::complex<double>(0.25, 0)).real()) > 0.00000001) {
+            removeFile("Samples/measureTest.txt");
+            removeFile("Samples/unconnected.qasm");
+            out<<"Failed Unconnected Test 2"<<std::endl;
+            out<<"Expected 0.25+1j, received: "<<c.GetFinalVal()<<std::endl;
+            return false;
+    }
+    out<<"Passed Unentangled Test 2"<<std::endl;
     
     
     removeFile("Samples/measureTest.txt");
@@ -2042,10 +2053,11 @@ void runTests(const std::string& fileToOutputTo)
                 output<<std::endl<<"Failed"<<std::endl;
                 failCount++;
             }
-            output<<"Time Taken For Test: "<<t.getCPUElapsed()-tempTime<<" seconds."<<std::endl<<std::endl;
+            output<<"Time Taken For Test: "<<t.getCPUElapsed()-tempTime<<" seconds."<<std::endl<<"------------------------------------------------------"<<std::endl;
             tempTime = t.getCPUElapsed();
         }
     }
+    output<<"============================== Test Summary ================================"<<std::endl;
     output<<"TOTAL TEST FAILURE COUNT: "<<failCount<<". Please check above output for failed test if applicable"<<std::endl;
     output<<"Testing time: "<<t.getCPUElapsed()<<" seconds."<<std::endl;
 }
